@@ -1,0 +1,337 @@
+---
+title: 'Group Project 1: Body Fat Modeling'
+author: "Catherine Zheng, Peter Kryspin, Jon Starfeldt"
+date: "10/10/2021"
+output:
+  word_document: default
+  html_document: default
+  pdf_document: default
+---
+
+# Step 1: Analyzing Raw Data
+
+
+```{r}
+BodyFat=read.csv("Bodyfat.csv")
+attach(BodyFat)
+library(car)
+dim(BodyFat)
+```
+
+252 means that there are 252 rows (men) in this dataset, 17 means that there are 17 parameters measured.
+```{r}
+colnames(BodyFat)
+```
+```{r}
+head(BodyFat)
+```
+```{r}
+tail(BodyFat)
+```
+
+```{r}
+summary(BodyFat)
+```
+Some findings:\
+1. The first column is just the index number of each individual\
+2.The age of the participants are mainly around 40\
+3. In height, weight, abdomen circumference, adiposity, and age, they have relatively larger range than other measurements\
+4. Someone has a Bodyfat of 0 %. This might be an incorrect value.
+```{r}
+##Take a look at the first ten rows##
+BodyFat[1:10,]
+```
+```{r}
+##Take a random look at 67th,135th,and 220th individual##
+BodyFat[c(67,135,220),]
+```
+We noticed that 135th and 220th have similar abdomen circumference(87.2 and 88.7), but their body fat are quite different (23.8 and 15.1), we think this may be influenced by their age (41 and 53).
+
+Since we noticed that the range of age, abdomen, height, and weight are relatively large.\
+Then we take a subset of the first ten men and look at body fat, age, abdomen, height,weight,and adiposity.
+```{r}
+BodyFat[1:10,c(2,4,5,6,7,10)]
+```
+From some of the background readings we read, we noticed that with the increase of male's body fat, their abdomen circumference increase a lot. 
+
+# Step2:Visualizing Data
+
+We started with histograms of BodyFat %
+```{r}
+hist(BODYFAT,breaks=30,cex.lab=1.5,cex.main=1.5,
+     main="Histogram of Body Fat (%)",xlab="Body Fat (%)")
+```
+
+Then we created multiple plots contain Body Fat %, Age, Height, Weight, and Abdomen 2 circumference
+```{r}
+
+par(mfrow=c(3,2))
+par(mgp=c(1.8,.5,0), mar=c(3,3,1,1))
+hist(BODYFAT, breaks=30,cex.lab=1.5,cex.main=1.5,
+     main="Histogram of Body Fat (%)", xlab="Body Fat (%)")
+hist(AGE, breaks=30,cex.lab=1.5,cex.main=1.5,
+     main="Histogram of Age (years)", xlab="Age (years)")
+hist(HEIGHT, breaks=30,cex.lab=1.5,cex.main=1.5,
+     main="Histogram of height (inches)", xlab="Height (inches)")
+hist(WEIGHT, breaks=30,cex.lab=1.5,cex.main=1.5,
+     main="Histogram of weight (lbs)", xlab="weight (lbs)")
+hist(ABDOMEN, breaks=30,cex.lab=1.5,cex.main=1.5,
+     main="Histogram of Abdomen 2 circumference (cm) ", xlab="Abdomen 2 circumference (cm) ")
+hist(ADIPOSITY, breaks=30,cex.lab=1.5,cex.main=1.5,
+     main="Histogram of ADIPOSITY (bmi) ", xlab="ADIPOSITY (bmi) ")
+```
+
+It seems like there is one person that has the highest weight, abdomen circumference, and adiposity. So we were thinking that this person could be an outlier.
+
+```{r}
+## So we used some subsets to find the possible outlier##
+BodyFat[WEIGHT > 350,]
+```
+
+```{r}
+## For the Abdomen subset##
+BodyFat[ABDOMEN > 140,]
+```
+
+```{r}
+## For the Adiposity##
+BodyFat[ADIPOSITY > 45,]
+```
+
+Since subject 39 has such a large weight, abdomen, and adiposity, we think he could be an outlier and we will determine that in leverage values and cook's distance.
+
+Then we try to show that age, weight, height, and abdomen could have linear relationship with age, weight, height,abdomen
+```{r}
+specific = BodyFat[c(4,5,6,10)]
+summary(specific)
+```
+```{r}
+pairs(specific)
+```
+We observe a positive linear relationship between body fat and abdomen circumference as well as body fat and weight. The body fat versus height scatter plot may be linear, however an obvious slope unequal to zero must be observed in order to suggest a linear relationship.
+
+
+# Step3: Statistical Modeling and Analysis
+From the description of data and our background readings, we noticed that adiposity is just bmi, which is calculated by weight/(height)^2\
+After the first two steps, we decided our predictors to be: age, adiposity,and abdomen.
+
+Plot of Body Fat by Abdomen Circumference and summary statistics
+```{r}
+plot(ABDOMEN, BODYFAT, xlab = "Abdomen Circumference (cm)", ylab = "Percentage Body Fat (%)")
+```
+
+```{r}
+AbLinearModel = lm(BODYFAT~ABDOMEN)
+summary(AbLinearModel)
+```
+
+Plot of Body Fat by Adiposity (BMI) and summary statistics
+```{r}
+plot(BodyFat$ADIPOSITY, BodyFat$BODYFAT, xlab = "BMI (kg/m^2)", ylab = "Percentage Body Fat (%)")
+```
+
+```{r}
+BMILinearModel = lm(BodyFat$BODYFAT~BodyFat$ADIPOSITY)
+summary(BMILinearModel)
+```
+ 
+Plot of Body Fat by Age and summary statistics
+```{r}
+plot(BodyFat$AGE, BodyFat$BODYFAT, xlab = "Age (years)", ylab = "Percentage Body Fat (%)")
+```
+
+```{r}
+AgeLinearModel = lm(BODYFAT~AGE)
+summary(AgeLinearModel)
+```
+
+From the above three SLR models, we think ADPOSITY,AGE,and ABDOMEN have a linear relationship with body fat.
+
+```{r}
+guessmodel = lm(BODYFAT ~ ABDOMEN + ADIPOSITY + AGE)
+summary(guessmodel)
+
+```
+According to our guess MLR model, if we want to use Abdomen circumference, Adiposity, and age to predict body fat %, we can use the equation\
+  Body Fat Pct = -37.13 + 0.635Abdomen Circumference(cm) - 0.212Adiposity + 0.06Age
+
+Now we will run some f-tests to figure out if our variables are significant after accounting for other variables.
+
+1. Test whether one of the three variables abdomen, adiposity, and age is important after accounting for the other two variables.
+Hypothesis here would be:
+$$H_0: \beta_1(or\ \beta_2\ or\ \beta3)=0, \quad{} H_1: \beta1 (or\ \beta_2\ or\ \beta_3) \neq 0$$ 
+```{r}
+summary(guessmodel)
+```
+From here, we noticed that Abdomen and Age both have p-value less than 0.05, the associated p-value for adiposity is 0.3090, so we fail to reject the null hypothesis that beta3 =0. In this case, we thought that we need to take out Adiposity as our predictors since it's not so significant.
+
+2. Test whether taking out a variable is significant\
+    H0: taking out variable is insignificant;\
+    H1: taking out variable is significant\
+i)For Adiposity;
+```{r}
+noBMI= lm(BODYFAT~ABDOMEN+AGE,data=BodyFat)
+anova(noBMI,guessmodel)
+```
+
+ii)For Age:
+```{r}
+noAge= lm(BODYFAT~ABDOMEN+ADIPOSITY,data=BodyFat)
+anova(noAge,guessmodel)
+```
+
+iii)For Abdomen
+```{r}
+noAbdomen= lm(BODYFAT~AGE+ADIPOSITY,data=BodyFat)
+anova(noAbdomen,guessmodel)
+```
+
+We noticed that if we take out Adiposity, the corresponding p-vlue is 0.309, greater than 0.05, meaning that Adiposity is insignificant in out guess model.
+
+In this case, we decided to only use Age and Abdomen in our MLR model as predictors.
+
+```{r}
+reducedModel <- lm(BODYFAT~ABDOMEN+AGE)
+summary(reducedModel)
+```
+So now we make our guess model to a reduced one.\
+According to our reduced model, we can interpret the MLR model as \
+  Body Fat Pct = -36.52 +0.567 Abdomen + 0.066Age
+
+Interpretation of coefficients:\
+1. If we keep Abdomen fixed, we increase age by 1 year, the body fat will increase by 0.066 % \
+2. If we keep Age fixed, we increase Abdomen by 1 cm, the body fat will increase by 0.57\
+
+```{r}
+fullmodel <- lm(BODYFAT ~AGE+WEIGHT+HEIGHT+ADIPOSITY+NECK+CHEST+ABDOMEN+HIP+THIGH+KNEE+ANKLE+BICEPS+FOREARM+WRIST)
+reducedModel <- lm(BODYFAT~ABDOMEN+AGE)
+
+```
+
+3.Test whether at least one of abdomen circumference or age is significant in predicting body fat percentage.\
+Hypothesis test here would be:
+$$H_0: \beta_1=\beta_2 = 0, \quad{} H_1: at\ least\ one\  \beta_j \neq 0$$ 
+
+```{r}
+anova(reducedModel,fullmodel)
+
+```
+
+Here, we get the p-value is 4.212e-09, so we reject the null hypothesis and conclude that at least one predictor is significant in predicting body fat percentage.
+
+4. Test if each variable is important after accounting for the other
+
+i)For Abdomen
+$$H_0: \beta_2 = 0, \quad{} H_1:\beta_2 \neq 0$$
+```{r}
+anova(AgeLinearModel,reducedModel)
+
+```
+Here, we get the p-value is < 2.2e-16, so we reject the null hypothesis and conclude that Abdomen is significant in predicting Bodayfat after accounting for Age.
+
+ii)For Age
+$$H_0: \beta_1 = 0, \quad{} H_1:  \beta_1 \neq 0$$
+```{r}
+anova(AbLinearModel,reducedModel)
+```
+Here, we get the p-value is 0.004273, so we reject the null hypothesis and conclude that Abdomen is significant in predicting Body fat after accounting for Age.
+
+Now that we have decided on a model, we want to use our model repair the data point with 0% body fat that we observed earlier.
+```{r}
+zeroBodyFat = which(BodyFat$BODYFAT == 0)
+##Want to confirm this is the correct data point
+BodyFat[182,]
+predictedValue = -36.52+.567*69.4+.066*40
+predictedValue
+BodyFat[182,2] = 5.5
+
+##Update our model to include this data point
+reducedModel = lm(BodyFat$BODYFAT~BodyFat$ABDOMEN+BodyFat$AGE)
+summary(reducedModel)
+```
+The equation for this updated MLR model is:\
+Body Fat Percentage = -36.09 + 0.563Abdomen Circumference(cm) + 0.066Age
+
+```{r}
+confint(reducedModel)
+```
+Our model contains a 5% error rate, so here are shown the boundaries for 95% percent confidence intervals for the true value of the intercept and each of the predictor variables.
+
+# Step4: Diagnostics
+
+1.Residual Plot
+```{r}
+r_bf =residuals(reducedModel)
+yhat_bf=predict(reducedModel)
+plot(yhat_bf,r_bf,main="Residual Plot for BodyFat Data",
+     xlab="Predicted Y", ylab="Residuals",
+     pch=19,cex=1.5,cex.main=1.5,cex.lab=1.5)
+abline(a=0,b=0,col="black",lwd=3)
+
+```
+1.We don't see any non-linear trends in the residual plot\
+2.We don't see any < or > out pattern; more generally, I don't see the width of the points (in the y-direction) changing as I move across the x-axis.\
+As such, I think linearity and homoscedasticity seem reasonable.
+
+2.QQ Plot
+```{r}
+qqnorm(rstandard(reducedModel),main="Normal QQ Plot for BodyFat Data",
+       pch=19,cex=1.5,cex.main=1.5,cex.lab=1.5)
+abline(a=0,b=1,lwd=2,col="blue")
+```
+From the QQ plot, Normality looks reasonable; the points are reasonably close to the 45 degree line. 
+
+3. Outliers in BodyFat data
+```{r}
+plot(yhat_bf,rstudent(reducedModel),main="(Studentized) Residual Plot",
+     xlab="Predicted Y", ylab="Studentized Residuals",
+     pch=19,cex=1.5,cex.main=1.5,cex.lab=1.5); abline(h=0,col="blue",lwd=3,lty=2)
+
+```
+4.leverage and influential points
+```{r}
+#Cook's Distance
+infIndexPlot(reducedModel, vars = c("Cook"), main = "Cooks Distances")
+```
+
+```{r}
+#Leverage Values
+infIndexPlot(reducedModel, vars = c("Hat"), main = "Leverage Values")
+```
+Point at index 39 appears to be influential as it is an outlier in both plots so we try removing it from data set.
+```{r}
+newBodyFat <- BodyFat[c(1:38, 40:252),]
+newReducedModel <- lm(newBodyFat$BODYFAT~newBodyFat$ABDOMEN+newBodyFat$AGE)
+summary(newReducedModel)
+```
+Taking out point 39 has lowered the intercept beta0 by 3 (body fat percentage) points and increased the beta1 slope with abdomen size by .037(body fat percentage) points while the linear relationship with age remained roughly similar.
+
+
+```{r}
+confint(newReducedModel)
+```
+
+The new model contains a 5% error rate, so here are shown the boundaries for 95% percent confidence intervals for the true value of the intercept and each of the predictor variables.
+
+5.Multicollinearity
+
+```{r}
+vif(newReducedModel)
+```
+For each predictor, the VIFs are below 5 and thus, we don't have to worry about issues of multicollinearity.
+
+We decided to leave the measurement of abdomen circumference in cm because when measuring abdominal circumference, a person would likely use a tape measure, which are almost always in units of meters/centimeters.
+
+# Summary of Analysis
+
+Our proposed MLR model if we want to use abdomen circumference and age to predict body fat % is:\
+Body Fat Percentage = -39.16 + 0.60 Abdomen circumference (cm) + 0.06 Age
+
+Possible rule of thumb: Multiply your abdomen circumference (in centimeters) by 0.6 and your age by 0.1 and subtract 40.\
+A caveat of this rule of thumb is that it will always overestimate body fat percentage compared to the non-rounded model because the slope value for age is higher. However, this rule of thumb is within the 95% confidence intervals for both of the predictors?? slopes and the intercept so it is reasonable.
+
+
+Example Usage:\
+For a man who is 20 and has abdomen circumference of 90.0 cm, their predicted body fat percentage would be 16.04% using the model and 16.0% using the rule of thumb.
+
+
