@@ -3,6 +3,12 @@ The purpose of our analysis was to predict body fat percentages in young male ad
 
 The files are as follows:
 
-Bodyfat.csv
-Bodyfat_presentation.pdf
-more
+Body Fat Presentation.pdf: A pdf of the final presentation
+
+Bodyfat.csv: Bodyfat data
+
+FinalProject.Rmd: R Markdown code
+
+FinalProject.html: R Markdown code in HTML
+
+Final_Project_summary.docx: Written summary of processes, analyses, and conclusions
